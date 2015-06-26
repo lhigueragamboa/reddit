@@ -1,22 +1,53 @@
 package main
 
 import (
-	"io"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
-	"os"
 )
 
+type Item struct {
+	Title string
+	URL   string
+}
+
+type Response struct {
+	Data struct {
+		Children []struct {
+			Data Item
+		}
+	}
+}
+
 func main() {
-	resp, err := http.Get("http://reddit.com/r/golang.json")
+	items, err := Get("golang")
 	if err != nil {
 		log.Fatalln(err)
 	}
+	for _, item := range items {
+		fmt.Println(item)
+	}
+}
+
+func Get(subreddit string) ([]Item, error) {
+	url := fmt.Sprintf("http://reddit.com/r/%s.json", subreddit)
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		log.Fatalln(resp.Status)
+		return nil, errors.New(resp.Status)
 	}
-	_, err = io.Copy(os.Stdout, resp.Body)
-	if err != nil {
-		log.Fatalln(err)
+	r := new(Response)
+	if err = json.NewDecoder(resp.Body).Decode(r); err != nil {
+		return nil, err
 	}
+	items := make([]Item, len(r.Data.Children))
+	for i, child := range r.Data.Children {
+		items[i] = child.Data
+	}
+	return items, nil
 }
