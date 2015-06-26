@@ -13,6 +13,10 @@ type Item struct {
 	URL   string
 }
 
+func (i Item) String() string {
+	return fmt.Sprintf("Title: %s\nURL: %s", i.Title, i.URL)
+}
+
 type Response struct {
 	Data struct {
 		Children []struct {
